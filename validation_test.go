@@ -75,6 +75,7 @@ func TestEq(t *testing.T) {
 	).Check()
 
 	if err == nil {
+		t.Errorf("Expected error")
 		t.FailNow()
 	}
 
@@ -83,6 +84,7 @@ func TestEq(t *testing.T) {
 	).Check()
 
 	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
 		t.FailNow()
 	}
 }
@@ -108,7 +110,7 @@ func TestNe(t *testing.T) {
 	}
 }
 
-func TestIsNil(t *testing.T) {
+func TestNotNil(t *testing.T) {
 
 	err := Begin().Validate(
 		NotNil("foo", "foo"),
@@ -116,7 +118,7 @@ func TestIsNil(t *testing.T) {
 	).Check()
 
 	if err != nil {
-		t.Error("Received an unexpected error.")
+		t.Errorf("Received an unexpected error: %v", err)
 		t.FailNow()
 	}
 
@@ -266,6 +268,15 @@ func TestNotEmpty(t *testing.T) {
 
 	if err == nil {
 		t.Errorf("Expected an error.")
+		t.FailNow()
+	}
+
+	err = Begin().Validate(
+		NotEmpty("abc", "tmpA"),
+	).Check()
+
+	if err != nil {
+		t.Errorf("Received an unexpected error: %v", err)
 		t.FailNow()
 	}
 }

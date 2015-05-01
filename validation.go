@@ -139,7 +139,7 @@ func (val *Validation) Validate(checkers ...Checker) *Validation {
 
 func (val *Validation) constructErrorMessage() error {
 	return fmt.Errorf(
-		"parameter validation failed:\t%s",
+		"Parameter validation failed:\t%s",
 		strings.Join(val.Errors, "\n\t"),
 	)
 }
@@ -171,7 +171,8 @@ func Not(checker Checker) Checker {
 func Eq(lhs, rhs interface{}, paramName string) Checker {
 
 	return func() (pass bool, errMsg string) {
-		return (lhs == rhs), fmt.Sprintf("Parameters were not equal: %s %v, %v", paramName, lhs, rhs)
+		return lhs == rhs, fmt.Sprintf("%q failed %v == %v",
+			paramName, lhs, rhs)
 	}
 }
 
@@ -179,7 +180,8 @@ func Eq(lhs, rhs interface{}, paramName string) Checker {
 func Ne(lhs, rhs interface{}, paramName string) Checker {
 
 	return func() (isNe bool, errMsg string) {
-		return lhs != rhs, fmt.Sprintf("Parameters were equal: %s %v == %v", paramName, lhs, rhs)
+		return lhs != rhs, fmt.Sprintf("%q failed  %v != %v",
+			paramName, lhs, rhs)
 	}
 }
 
@@ -208,7 +210,8 @@ func NotNil(obtained interface{}, paramName string) Checker {
 			}
 		}
 
-		return isNotNil, "Parameter was nil: " + paramName
+		return isNotNil, fmt.Sprintf("%q failed %v != nil",
+			paramName, obtained)
 	}
 }
 
@@ -218,7 +221,8 @@ func Len(param interface{}, minLength, maxLength int, paramName string) Checker 
 	return func() (hasLen bool, errMsg string) {
 		len := reflect.ValueOf(param).Len()
 		hasLen = minLength <= len && len <= maxLength
-		return hasLen, "Parameter did not contain the correct number of elements: " + paramName
+		return hasLen, fmt.Sprintf("%q failed %d <= %d <= %d ",
+			paramName, minLength, len, maxLength)
 	}
 }
 
@@ -227,11 +231,8 @@ func Lt(param int, comparativeVal int, paramName string) Checker {
 
 	return func() (isLt bool, errMsg string) {
 		if isLt = param < comparativeVal; !isLt {
-			errMsg = fmt.Sprintf(
-				"Parameter was not less than:  %s(%d) >= %d",
-				paramName,
-				param,
-				comparativeVal)
+			errMsg = fmt.Sprintf("%q failed %d < %d",
+				paramName, param, comparativeVal)
 		}
 
 		return isLt, errMsg
@@ -243,11 +244,8 @@ func Le(param int, comparativeVal int, paramName string) Checker {
 
 	return func() (isLe bool, errMsg string) {
 		if isLe = param <= comparativeVal; !isLe {
-			errMsg = fmt.Sprintf(
-				"Parameter was not less than or equal to:  %s(%d) > %d",
-				paramName,
-				param,
-				comparativeVal)
+			errMsg = fmt.Sprintf("%q failed %d <= %d",
+				paramName, param, comparativeVal)
 		}
 
 		return isLe, errMsg
@@ -260,11 +258,8 @@ func Gt(param int, comparativeVal int, paramName string) Checker {
 
 	return func() (isGt bool, errMsg string) {
 		if isGt = param > comparativeVal; !isGt {
-			errMsg = fmt.Sprintf(
-				"Parameter was not greater than:  %s(%d) <= %d",
-				paramName,
-				param,
-				comparativeVal)
+			errMsg = fmt.Sprintf("%q  faield %d > %d",
+				paramName, param, comparativeVal)
 		}
 
 		return isGt, errMsg
@@ -277,11 +272,8 @@ func Ge(param int, comparativeVal int, paramName string) Checker {
 
 	return func() (isGe bool, errMsg string) {
 		if isGe = param >= comparativeVal; !isGe {
-			errMsg = fmt.Sprintf(
-				"Parameter was not greater than or equal to:  %s(%d) < %d",
-				paramName,
-				param,
-				comparativeVal)
+			errMsg = fmt.Sprintf("%q failed %d) >= %d",
+				paramName, param, comparativeVal)
 		}
 
 		return isGe, errMsg
@@ -292,7 +284,7 @@ func Ge(param int, comparativeVal int, paramName string) Checker {
 func NotEmpty(obtained, paramName string) Checker {
 	return func() (isNotEmpty bool, errMsg string) {
 		isNotEmpty = obtained != ""
-		errMsg = fmt.Sprintf("Parameter is an empty string: %s", paramName)
+		errMsg = fmt.Sprintf("%s failed %q != \"\"", paramName, obtained)
 		return
 	}
 }
