@@ -1,4 +1,4 @@
-vala [![GoDoc](https://godoc.org/github.com/kat-co/vala?status.svg)](https://godoc.org/github.com/kat-co/vala)
+vala [![GoDoc](https://godoc.org/github.com/boki/vala?status.svg)](https://godoc.org/github.com/boki/vala)
 ====
 
 A simple, extensible, library to make argument validation in Go palatable.
@@ -28,14 +28,14 @@ Do this:
 
 ```go
 func ClearValidation(a, b, c, d, e, f, g MyType) {
-  BeginValidation().Validate(
-    IsNotNil(a, "a"),
-    IsNotNil(b, "b"),
-    IsNotNil(c, "c"),
-    IsNotNil(d, "d"),
-    IsNotNil(e, "e"),
-    IsNotNil(f, "f"),
-    IsNotNil(g, "g"),
+  Begin().Validate(
+    NotNil(a, "a"),
+    NotNil(b, "b"),
+    NotNil(c, "c"),
+    NotNil(d, "d"),
+    NotNil(e, "e"),
+    NotNil(f, "f"),
+    NotNil(g, "g"),
   ).CheckAndPanic() // All values will get checked before an error is thrown!
 }
 ```
@@ -66,14 +66,14 @@ Do this:
 ```go
 func ClearValidation(a, b, c, d, e, f, g MyType) (err error) {
   defer func() { recover() }
-  BeginValidation().Validate(
-    IsNotNil(a, "a"),
-    IsNotNil(b, "b"),
-    IsNotNil(c, "c"),
-    IsNotNil(d, "d"),
-    IsNotNil(e, "e"),
-    IsNotNil(f, "f"),
-    IsNotNil(g, "g"),
+  Begin().Validate(
+    NotNil(a, "a"),
+    NotNil(b, "b"),
+    NotNil(c, "c"),
+    NotNil(d, "d"),
+    NotNil(e, "e"),
+    NotNil(f, "f"),
+    NotNil(g, "g"),
   ).CheckSetErrorAndPanic(&err) // Return error will get set, and the function will return.
 
   // ...
@@ -86,15 +86,15 @@ Tier your validation:
 
 ```go
 func ClearValidation(a, b, c MyType) (err error) {
-  err = BeginValidation().Validate(
-    IsNotNil(a, "a"),
-    IsNotNil(b, "b"),
-    IsNotNil(c, "c"),
+  err = Begin().Validate(
+    NotNil(a, "a"),
+    NotNil(b, "b"),
+    NotNil(c, "c"),
   ).CheckAndPanic().Validate( // Panic will occur here if a, b, or c are nil.
-    HasLen(a.Items, 50, "a.Items"),
-    GreaterThan(b.UserCount, 0, "b.UserCount"),
-    Equals(c.Name, "Vala", "c.name"),
-    Not(Equals(c.FriendlyName, "Foo", "c.FriendlyName")),
+    Len(a.Items, 50, 50, "a.Items"),
+    Gt(b.UserCount, 0, "b.UserCount"),
+    Eq(c.Name, "Vala", "c.name"),
+    Not(Eq(c.FriendlyName, "Foo", "c.FriendlyName")),
   ).Check()
 
   if err != nil {
@@ -121,7 +121,7 @@ func ReportFitsRepository(report *Report, repository *Repository) Checker {
 
 func AuthorCanUpload(authorName string, repository *Repository) Checker {
 	return func() (passes bool, err error) {
-        err = fmt.Errof("%s does not have access to this repository.", authorName)
+    err = fmt.Errof("%s does not have access to this repository.", authorName)
 		passes = !repository.AuthorCanUpload(authorName)
 		return passes, err
 	}
@@ -130,7 +130,7 @@ func AuthorCanUpload(authorName string, repository *Repository) Checker {
 func AuthorIsCollaborator(authorName string, report *Report) Checker {
 	return func() (passes bool, err error) {
 
-        err = fmt.Errorf("The given author was not one of the collaborators for this report.")
+    err = fmt.Errorf("The given author was not one of the collaborators for this report.")
 		for _, collaboratorName := range report.Collaborators() {
 			if collaboratorName == authorName {
 				passes = true
@@ -144,7 +144,7 @@ func AuthorIsCollaborator(authorName string, report *Report) Checker {
 
 func HandleReport(authorName string, report *Report, repository *Repository) {
 
-	BeginValidation().Validate(
+	Begin().Validate(
     	AuthorIsCollaborator(authorName, report),
 		AuthorCanUpload(authorName, repository),
 		ReportFitsRepository(report, repository),
