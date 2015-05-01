@@ -98,7 +98,7 @@ func ClearValidation(a, b, c MyType) (err error) {
   ).Check()
 
   if err != nil {
-  	return err
+    return err
   }
 
   // ...
@@ -111,43 +111,39 @@ Extend with your own validators for readability. Note that an error should alway
 
 ```go
 func ReportFitsRepository(report *Report, repository *Repository) Checker {
-	return func() (passes bool, err error) {
-
-		err = fmt.Errof("A %s report does not belong in a %s repository.", report.Type, repository.Type)
-		passes = (repository.Type == report.Type)
-		return passes, err
-	}
+  return func() (passes bool, err error) {
+    err = fmt.Errof("A %s report does not belong in a %s repository.", report.Type, repository.Type)
+    passes = (repository.Type == report.Type)
+    return passes, err
+  }
 }
 
 func AuthorCanUpload(authorName string, repository *Repository) Checker {
-	return func() (passes bool, err error) {
+  return func() (passes bool, err error) {
     err = fmt.Errof("%s does not have access to this repository.", authorName)
-		passes = !repository.AuthorCanUpload(authorName)
-		return passes, err
-	}
+    passes = !repository.AuthorCanUpload(authorName)
+    return passes, err
+  }
 }
 
 func AuthorIsCollaborator(authorName string, report *Report) Checker {
-	return func() (passes bool, err error) {
-
+  return func() (passes bool, err error) {
     err = fmt.Errorf("The given author was not one of the collaborators for this report.")
-		for _, collaboratorName := range report.Collaborators() {
-			if collaboratorName == authorName {
-				passes = true
-				break
-			}
-		}
-
-        return passes, err
-	}
+    for _, collaboratorName := range report.Collaborators() {
+      if collaboratorName == authorName {
+        passes = true
+        break
+      }
+    }
+    return passes, err
+  }
 }
 
 func HandleReport(authorName string, report *Report, repository *Repository) {
-
-	Begin().Validate(
-    	AuthorIsCollaborator(authorName, report),
-		AuthorCanUpload(authorName, repository),
-		ReportFitsRepository(report, repository),
-	).CheckAndPanic()
+  Begin().Validate(
+    AuthorIsCollaborator(authorName, report),
+    AuthorCanUpload(authorName, repository),
+    ReportFitsRepository(report, repository),
+  ).CheckAndPanic()
 }
 ```
