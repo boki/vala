@@ -258,7 +258,7 @@ func Gt(param int, comparativeVal int, paramName string) Checker {
 
 	return func() (isGt bool, errMsg string) {
 		if isGt = param > comparativeVal; !isGt {
-			errMsg = fmt.Sprintf("%q  faield %d > %d",
+			errMsg = fmt.Sprintf("%q failed %d > %d",
 				paramName, param, comparativeVal)
 		}
 
@@ -272,7 +272,7 @@ func Ge(param int, comparativeVal int, paramName string) Checker {
 
 	return func() (isGe bool, errMsg string) {
 		if isGe = param >= comparativeVal; !isGe {
-			errMsg = fmt.Sprintf("%q failed %d) >= %d",
+			errMsg = fmt.Sprintf("%q failed %d >= %d",
 				paramName, param, comparativeVal)
 		}
 
