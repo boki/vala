@@ -4,6 +4,21 @@ import (
 	"testing"
 )
 
+func TestError(t *testing.T) {
+	v := &Validation{[]string{}}
+
+	err := v.Error()
+	if err != "" {
+		t.Errorf("Received an unexpected error message: %v", err)
+	}
+
+	v.Errors = append(v.Errors, "Something happened")
+	err = v.Error()
+	if err == "" {
+		t.Errorf("Expected an error message.")
+	}
+}
+
 func TestPanicIsIssued(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {

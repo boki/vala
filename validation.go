@@ -70,14 +70,24 @@ import (
 	"strings"
 )
 
-func validationFactory(numErrors int) *Validation {
-	return &Validation{make([]string, numErrors)}
+func validationFactory() *Validation {
+	return &Validation{[]string{}}
 }
 
 // Validation contains all the errors from performing Checkers, and is
 // the fluent type off which all Validation methods hang.
 type Validation struct {
 	Errors []string
+}
+
+func (err *Validation) Error() string {
+	if len(err.Errors) > 0 {
+		return fmt.Sprintf(
+			"Parameter validation failed:\n\t%s",
+			strings.Join(err.Errors, "\n\t"),
+		)
+	}
+	return ""
 }
 
 // Begin begins a validation check.
@@ -92,7 +102,7 @@ func (val *Validation) Check() error {
 		return nil
 	}
 
-	return val.constructErrorMessage()
+	return val
 }
 
 // CheckAndPanic aggregates all checker errors into a single error and
@@ -102,7 +112,7 @@ func (val *Validation) CheckAndPanic() *Validation {
 		return val
 	}
 
-	panic(val.constructErrorMessage())
+	panic(val)
 }
 
 // CheckSetErrorAndPanic aggregates any Errors produced by the
@@ -115,7 +125,7 @@ func (val *Validation) CheckSetErrorAndPanic(retError *error) *Validation {
 		return val
 	}
 
-	*retError = val.constructErrorMessage()
+	*retError = val
 	panic(*retError)
 }
 
@@ -127,7 +137,7 @@ func (val *Validation) Validate(checkers ...Checker) *Validation {
 	for _, checker := range checkers {
 		if pass, msg := checker(); !pass {
 			if val == nil {
-				val = validationFactory(1)
+				val = validationFactory()
 			}
 
 			val.Errors = append(val.Errors, msg)
@@ -135,13 +145,6 @@ func (val *Validation) Validate(checkers ...Checker) *Validation {
 	}
 
 	return val
-}
-
-func (val *Validation) constructErrorMessage() error {
-	return fmt.Errorf(
-		"Parameter validation failed:\t%s",
-		strings.Join(val.Errors, "\n\t"),
-	)
 }
 
 //
