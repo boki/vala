@@ -13,7 +13,7 @@ simultaneously more robust and more terse parameter validation.
 		Len(a.Items, 50, 70, "a.Items"),
 		Gt(b.UserCount, 0, "b.UserCount"),
 		Eq(c.Name, "Vala", "c.name"),
-		Not(Eq(c.FriendlyName, "Foo", "c.FriendlyName")),
+		Not(Eq(c.FriendlyName, "Foo", "c.FriendlyName"), "!Eq"),
 	).Check()
 
 Notice how checks can be tiered.
@@ -22,31 +22,31 @@ Vala is also extensible. As long as a function conforms to the Checker
 specification, you can pass it into the Validate method:
 
 	func ReportFitsRepository(report *Report, repository *Repository) Checker {
-		return func() (passes bool, err error) {
-			err = fmt.Errorf("A %s report does not belong in a %s repository.", report.Type, repository.Type)
-			passes = (repository.Type == report.Type)
-			return passes, err
+		return func() *CheckerError {
+			if repository.Type != report.Type {
+				return fmt.Errorf("A %s report does not belong in a %s repository.", report.Type, repository.Type)
+			}
+			return nil
 		}
 	}
 
 	func AuthorCanUpload(authorName string, repository *Repository) Checker {
-		return func() (passes bool, err error) {
-			err = fmt.Errorf("%s does not have access to this repository.", authorName)
-			passes = !repository.AuthorCanUpload(authorName)
-			return passes, err
+		return func() *CheckerError {
+			if !repository.AuthorCanUpload(authorName) {
+				return fmt.Errorf("%s does not have access to this repository.", authorName)
+			}
+			return nil
 		}
 	}
 
 	func AuthorIsCollaborator(authorName string, report *Report) Checker {
-		return func() (passes bool, err error) {
-			err = fmt.Errorf("The given author was not one of the collaborators for this report.")
+		return func() *CheckerError {
 			for _, collaboratorName := range report.Collaborators() {
 				if collaboratorName == authorName {
-					passes = true
-					break
+					return nil
 				}
 			}
-			return passes, err
+			return fmt.Errorf("The given author was not one of the collaborators for this report.")
 		}
 	}
 
@@ -61,27 +61,55 @@ specification, you can pass it into the Validate method:
 package vala
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 )
 
-func validationFactory() *Validation {
-	return &Validation{[]string{}}
+// A single validation error
+type CheckerError struct {
+	// Optional parameter name
+	Name string
+	Err  error
 }
+
+func (err *CheckerError) Error() string {
+	if err.Name != "" {
+		return fmt.Sprintf("%s: %s", err.Name, err.Err)
+	}
+	return err.Err.Error()
+}
+
+var (
+	ErrNot      = errors.New("Not")
+	ErrEq       = errors.New("arg1 == arg2")
+	ErrNe       = errors.New("arg1 != arg2")
+	ErrNotNil   = errors.New("arg != nil")
+	ErrLen      = errors.New("min <= len(arg) <= max")
+	ErrLt       = errors.New("arg < value")
+	ErrLe       = errors.New("arg <= value")
+	ErrGt       = errors.New("arg > value")
+	ErrGe       = errors.New("arg >= value")
+	ErrNotEmpty = errors.New("arg != \"\"")
+)
 
 // Validation contains all the errors from performing Checkers, and is
 // the fluent type off which all Validation methods hang.
 type Validation struct {
-	Errors []string
+	Errors []*CheckerError
+}
+
+func validationFactory() *Validation {
+	return &Validation{[]*CheckerError{}}
 }
 
 func (err *Validation) Error() string {
 	if len(err.Errors) > 0 {
-		return fmt.Sprintf(
-			"Parameter validation failed:\n\t%s",
-			strings.Join(err.Errors, "\n\t"),
-		)
+		msg := "Parameter validation failed:"
+		for _, e := range err.Errors {
+			msg += "\n\t" + e.Error()
+		}
+		return msg
 	}
 	return ""
 }
@@ -127,11 +155,11 @@ func (val *Validation) CheckSetErrorAndPanic(retError *error) *Validation {
 // one of the Check* methods.
 func (val *Validation) Validate(checkers ...Checker) *Validation {
 	for _, checker := range checkers {
-		if pass, msg := checker(); !pass {
+		if err := checker(); err != nil {
 			if val == nil {
 				val = validationFactory()
 			}
-			val.Errors = append(val.Errors, msg)
+			val.Errors = append(val.Errors, err)
 		}
 	}
 	return val
@@ -141,50 +169,62 @@ func (val *Validation) Validate(checkers ...Checker) *Validation {
 // Checker functions
 //
 
-// Checker defines the type of function which can represent a Vala
-// checker.  If the Checker fails, returns false with a corresponding
-// error message. If the Checker succeeds, returns true, but _also_
-// returns an error message. This helps to support the Not function.
-type Checker func() (checkerIsTrue bool, errorMessage string)
+// Checker defines the type of function which can represent a Vala checker.
+type Checker func() *CheckerError
 
-// Not returns the inverse of any Checker passed in.
-func Not(checker Checker) Checker {
-	return func() (passed bool, errorMessage string) {
-		if passed, errorMessage = checker(); passed {
-			return false, fmt.Sprintf("Not(%s)", errorMessage)
+func newCheckerError(nameOrErr interface{}, def error) *CheckerError {
+	if name, ok := nameOrErr.(string); ok {
+		return &CheckerError{Name: name, Err: def}
+	}
+	return &CheckerError{Err: nameOrErr.(error)}
+}
+
+// Not returns the inverse of any Checker passed in. nameOrErr specifies the name
+// of the parameter or a custom error.
+func Not(checker Checker, nameOrErr interface{}) Checker {
+	return func() *CheckerError {
+		if err := checker(); err == nil {
+			return newCheckerError(nameOrErr, ErrNot)
 		}
-		return true, ""
+		return nil
 	}
 }
 
-// Eq performs a basic == on the given parameters and fails if
-// they are not equal.
-func Eq(lhs, rhs interface{}, paramName string) Checker {
-	return func() (pass bool, errMsg string) {
-		return lhs == rhs, fmt.Sprintf("%q failed %v == %v",
-			paramName, lhs, rhs)
+// Eq checks that the arguments pass arg1 == arg2. nameOrErr specifies the name
+// of the parameter or a custom error.
+func Eq(arg1, arg2 interface{}, nameOrErr interface{}) Checker {
+	return func() *CheckerError {
+		if arg1 == arg2 {
+			return nil
+		}
+		return newCheckerError(nameOrErr, ErrEq)
 	}
 }
 
-// Ne performs a basic != on the given parameters and fails if they are equal.
-func Ne(lhs, rhs interface{}, paramName string) Checker {
-	return func() (isNe bool, errMsg string) {
-		return lhs != rhs, fmt.Sprintf("%q failed  %v != %v",
-			paramName, lhs, rhs)
+// Ne checks that the arguments pass arg1 != arg2. nameOrErr specifies the name
+// of the parameter or a custom error.
+func Ne(arg1, arg2 interface{}, nameOrErr interface{}) Checker {
+	return func() *CheckerError {
+		if arg1 != arg2 {
+			return nil
+		}
+		return newCheckerError(nameOrErr, ErrNe)
 	}
 }
 
 // NotNil checks to see if the value passed in is nil. This Checker
 // attempts to check the most performant things first, and then
-// degrade into the less-performant, but accurate checks for nil.
-func NotNil(obtained interface{}, paramName string) Checker {
-	return func() (isNotNil bool, errMsg string) {
-		if obtained == nil {
+// degrade into the less-performant, but accurate checks for nil. nameOrErr
+// specifies the name of the parameter or a custom error.
+func NotNil(arg interface{}, nameOrErr interface{}) Checker {
+	return func() *CheckerError {
+		isNotNil := true
+		if arg == nil {
 			isNotNil = false
-		} else if str, ok := obtained.(string); ok {
+		} else if str, ok := arg.(string); ok {
 			isNotNil = str != ""
 		} else {
-			switch v := reflect.ValueOf(obtained); v.Kind() {
+			switch v := reflect.ValueOf(arg); v.Kind() {
 			case
 				reflect.Chan,
 				reflect.Func,
@@ -197,72 +237,76 @@ func NotNil(obtained interface{}, paramName string) Checker {
 				panic("Vala is unable to check this type for nilability at this time.")
 			}
 		}
-		return isNotNil, fmt.Sprintf("%q failed %v != nil",
-			paramName, obtained)
-	}
-}
-
-// Len checks to ensure the given argument is in the desired length.
-func Len(param interface{}, minLength, maxLength int, paramName string) Checker {
-	return func() (hasLen bool, errMsg string) {
-		len := reflect.ValueOf(param).Len()
-		hasLen = minLength <= len && len <= maxLength
-		return hasLen, fmt.Sprintf("%q failed %d <= %d <= %d ",
-			paramName, minLength, len, maxLength)
-	}
-}
-
-// Lt checks to ensure the given argument is less than the given value.
-func Lt(param int, comparativeVal int, paramName string) Checker {
-	return func() (isLt bool, errMsg string) {
-		if isLt = param < comparativeVal; !isLt {
-			errMsg = fmt.Sprintf("%q failed %d < %d",
-				paramName, param, comparativeVal)
+		if !isNotNil {
+			return newCheckerError(nameOrErr, ErrNotNil)
 		}
-		return isLt, errMsg
+		return nil
 	}
 }
 
-// Le checks to ensure the given argument is less than or equal to the given value.
-func Le(param int, comparativeVal int, paramName string) Checker {
-	return func() (isLe bool, errMsg string) {
-		if isLe = param <= comparativeVal; !isLe {
-			errMsg = fmt.Sprintf("%q failed %d <= %d",
-				paramName, param, comparativeVal)
+// Len checks that the given argument is in the desired length. nameOrErr
+// specifies the name of the parameter or a custom error.
+func Len(arg interface{}, min, max int, nameOrErr interface{}) Checker {
+	return func() *CheckerError {
+		len := reflect.ValueOf(arg).Len()
+		if len < min || len > max {
+			return newCheckerError(nameOrErr, ErrLen)
 		}
-		return isLe, errMsg
+		return nil
 	}
 }
 
-// Gt checks to ensure the given argument is greater than the
-// given value.
-func Gt(param int, comparativeVal int, paramName string) Checker {
-	return func() (isGt bool, errMsg string) {
-		if isGt = param > comparativeVal; !isGt {
-			errMsg = fmt.Sprintf("%q failed %d > %d",
-				paramName, param, comparativeVal)
+// Lt checks that the given argument is less than the given value. nameOrErr
+// specifies the name of the parameter or a custom error.
+func Lt(arg int, value int, nameOrErr interface{}) Checker {
+	return func() *CheckerError {
+		if arg >= value {
+			return newCheckerError(nameOrErr, ErrLt)
 		}
-		return isGt, errMsg
+		return nil
 	}
 }
 
-// Ge checks to ensure the given argument is greater than the
-// given value.
-func Ge(param int, comparativeVal int, paramName string) Checker {
-	return func() (isGe bool, errMsg string) {
-		if isGe = param >= comparativeVal; !isGe {
-			errMsg = fmt.Sprintf("%q failed %d >= %d",
-				paramName, param, comparativeVal)
+// Le checks that the given argument is less than or equal to the given value.
+// nameOrErr specifies the name of the parameter or a custom error.
+func Le(arg int, value int, nameOrErr interface{}) Checker {
+	return func() *CheckerError {
+		if arg > value {
+			return newCheckerError(nameOrErr, ErrLe)
 		}
-		return isGe, errMsg
+		return nil
 	}
 }
 
-// NotEmpty checks to ensure the given string is not empty.
-func NotEmpty(obtained, paramName string) Checker {
-	return func() (isNotEmpty bool, errMsg string) {
-		isNotEmpty = obtained != ""
-		errMsg = fmt.Sprintf("%s failed %q != \"\"", paramName, obtained)
-		return
+// Gt checks that the given argument is greater than the given value.
+// nameOrErr specifies the name of the parameter or a custom error.
+func Gt(arg int, value int, nameOrErr interface{}) Checker {
+	return func() *CheckerError {
+		if arg <= value {
+			return newCheckerError(nameOrErr, ErrGt)
+		}
+		return nil
+	}
+}
+
+// Ge checks that the given argument is greater than the given value.
+// nameOrErr specifies the name of the parameter or a custom error.
+func Ge(arg int, value int, nameOrErr interface{}) Checker {
+	return func() *CheckerError {
+		if arg < value {
+			return newCheckerError(nameOrErr, ErrGe)
+		}
+		return nil
+	}
+}
+
+// NotEmpty checks that the given string is not empty.
+// nameOrErr specifies the name of the parameter or a custom error.
+func NotEmpty(arg, nameOrErr interface{}) Checker {
+	return func() *CheckerError {
+		if arg == "" {
+			return newCheckerError(nameOrErr, ErrNotEmpty)
+		}
+		return nil
 	}
 }

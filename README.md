@@ -94,7 +94,7 @@ func ClearValidation(a, b, c MyType) (err error) {
     Len(a.Items, 50, 50, "a.Items"),
     Gt(b.UserCount, 0, "b.UserCount"),
     Eq(c.Name, "Vala", "c.name"),
-    Not(Eq(c.FriendlyName, "Foo", "c.FriendlyName")),
+    Not(Eq(c.FriendlyName, "Foo", "c.FriendlyName"), "!Eq"),
   ).Check()
 
   if err != nil {
@@ -107,35 +107,67 @@ func ClearValidation(a, b, c MyType) (err error) {
 }
 ```
 
+The `nameOrErr` parameter to the default checker functions allows you to either specify the parameters name or to provide a custom error to be used instead of the default error values:
+
+```go
+a, b := nil, nil
+err := Begin().Validate(
+  NotNil(a, ErrANotNil),
+  NotNil(b, "b"),
+).Check()
+```
+
+`err` will have a value of:
+
+```go
+Validation{
+  Errors: []*CheckerError{
+    &CheckerError{Name: "", Err: ErrANotNil},
+    &CheckerError{Name: "b", Err: ErrNotNil},
+  }
+}
+```
+
+```go
+err = Begin().Validate(
+  NotNil(a, ErrANotNil),
+  NotNil(b, "b"),
+  NotNil(c, ErrCNotNil),
+).CheckAndPanic().Validate( // Panic will occur here if a, b, or c are nil.
+  Eq(c.Name, "Vala", ErrNameMismatch),
+  Not(Eq(c.FriendlyName, "Foo", ErrNameMismatch), ErrNameMatch),
+).Check()
+```
+
 Extend with your own validators for readability. Note that an error should always be returned so that the Not function can return a message if it passes. Unlike idiomatic Go, use the boolean to check for success.
 
 ```go
 func ReportFitsRepository(report *Report, repository *Repository) Checker {
-  return func() (passes bool, err error) {
-    err = fmt.Errof("A %s report does not belong in a %s repository.", report.Type, repository.Type)
-    passes = (repository.Type == report.Type)
-    return passes, err
+  return func() *CheckerError {
+    if repository.Type != report.Type {
+      return fmt.Errorf("A %s report does not belong in a %s repository.", report.Type, repository.Type)
+    }
+    return nil
   }
 }
 
 func AuthorCanUpload(authorName string, repository *Repository) Checker {
-  return func() (passes bool, err error) {
-    err = fmt.Errof("%s does not have access to this repository.", authorName)
-    passes = !repository.AuthorCanUpload(authorName)
-    return passes, err
+  return func() *CheckerError {
+    if !repository.AuthorCanUpload(authorName) {
+      return fmt.Errorf("%s does not have access to this repository.", authorName)
+    }
+    return nil
   }
 }
 
 func AuthorIsCollaborator(authorName string, report *Report) Checker {
-  return func() (passes bool, err error) {
-    err = fmt.Errorf("The given author was not one of the collaborators for this report.")
+  return func() *CheckerError {
     for _, collaboratorName := range report.Collaborators() {
       if collaboratorName == authorName {
-        passes = true
-        break
+        return nil
       }
     }
-    return passes, err
+    return fmt.Errorf("The given author was not one of the collaborators for this report.")
   }
 }
 
