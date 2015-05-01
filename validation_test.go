@@ -87,6 +87,27 @@ func TestEq(t *testing.T) {
 	}
 }
 
+func TestNe(t *testing.T) {
+
+	err := Begin().Validate(
+		Ne("foo", "foo", "foo"),
+	).Check()
+
+	if err == nil {
+		t.Errorf("Unexpected error: %v", err)
+		t.FailNow()
+	}
+
+	err = Begin().Validate(
+		Ne("foo", "bar", "foo"),
+	).Check()
+
+	if err != nil {
+		t.Errorf("Expected error")
+		t.FailNow()
+	}
+}
+
 func TestIsNil(t *testing.T) {
 
 	err := Begin().Validate(
@@ -153,6 +174,47 @@ func TestLen(t *testing.T) {
 	}
 }
 
+func TestLt(t *testing.T) {
+
+	err := Begin().Validate(
+		Lt(0, 1, "tmpA"),
+	).Check()
+
+	if err != nil {
+		t.Errorf("Received an unexpected error: %v", err)
+		t.FailNow()
+	}
+
+	err = Begin().Validate(
+		Lt(1, 0, "tmpC"),
+	).Check()
+
+	if err == nil {
+		t.Errorf("Expected an error.")
+		t.FailNow()
+	}
+}
+
+func TestLe(t *testing.T) {
+
+	err := Begin().Validate(
+		Le(0, 1, "tmpA"),
+		Le(1, 1, "tmpA"),
+	).Check()
+	if err != nil {
+		t.Errorf("Received an unexpected error: %v", err)
+		t.FailNow()
+	}
+
+	err = Begin().Validate(
+		Le(2, 1, "tmpC"),
+	).Check()
+	if err == nil {
+		t.Errorf("Expected an error.")
+		t.FailNow()
+	}
+}
+
 func TestGt(t *testing.T) {
 
 	err := Begin().Validate(
@@ -166,6 +228,28 @@ func TestGt(t *testing.T) {
 
 	err = Begin().Validate(
 		Gt(0, 1, "tmpC"),
+	).Check()
+
+	if err == nil {
+		t.Errorf("Expected an error.")
+		t.FailNow()
+	}
+}
+
+func TestGe(t *testing.T) {
+
+	err := Begin().Validate(
+		Ge(1, 1, "tmpA"),
+		Ge(2, 1, "tmpA"),
+	).Check()
+
+	if err != nil {
+		t.Errorf("Received an unexpected error: %v", err)
+		t.FailNow()
+	}
+
+	err = Begin().Validate(
+		Ge(0, 1, "tmpC"),
 	).Check()
 
 	if err == nil {

@@ -171,7 +171,15 @@ func Not(checker Checker) Checker {
 func Eq(lhs, rhs interface{}, paramName string) Checker {
 
 	return func() (pass bool, errMsg string) {
-		return (lhs == rhs), fmt.Sprintf("Parameters were not equal: %v, %v", lhs, rhs)
+		return (lhs == rhs), fmt.Sprintf("Parameters were not equal: %s %v, %v", paramName, lhs, rhs)
+	}
+}
+
+// Ne performs a basic != on the given parameters and fails if they are equal.
+func Ne(lhs, rhs interface{}, paramName string) Checker {
+
+	return func() (isNe bool, errMsg string) {
+		return lhs != rhs, fmt.Sprintf("Parameters were equal: %s %v == %v", paramName, lhs, rhs)
 	}
 }
 
@@ -214,6 +222,38 @@ func Len(param interface{}, minLength, maxLength int, paramName string) Checker 
 	}
 }
 
+// Lt checks to ensure the given argument is less than the given value.
+func Lt(param int, comparativeVal int, paramName string) Checker {
+
+	return func() (isLt bool, errMsg string) {
+		if isLt = param < comparativeVal; !isLt {
+			errMsg = fmt.Sprintf(
+				"Parameter was not less than:  %s(%d) >= %d",
+				paramName,
+				param,
+				comparativeVal)
+		}
+
+		return isLt, errMsg
+	}
+}
+
+// Le checks to ensure the given argument is less than or equal to the given value.
+func Le(param int, comparativeVal int, paramName string) Checker {
+
+	return func() (isLe bool, errMsg string) {
+		if isLe = param <= comparativeVal; !isLe {
+			errMsg = fmt.Sprintf(
+				"Parameter was not less than or equal to:  %s(%d) > %d",
+				paramName,
+				param,
+				comparativeVal)
+		}
+
+		return isLe, errMsg
+	}
+}
+
 // Gt checks to ensure the given argument is greater than the
 // given value.
 func Gt(param int, comparativeVal int, paramName string) Checker {
@@ -221,13 +261,30 @@ func Gt(param int, comparativeVal int, paramName string) Checker {
 	return func() (isGt bool, errMsg string) {
 		if isGt = param > comparativeVal; !isGt {
 			errMsg = fmt.Sprintf(
-				"Parameter's length was not greater than:  %s(%d) < %d",
+				"Parameter was not greater than:  %s(%d) <= %d",
 				paramName,
 				param,
 				comparativeVal)
 		}
 
 		return isGt, errMsg
+	}
+}
+
+// Ge checks to ensure the given argument is greater than the
+// given value.
+func Ge(param int, comparativeVal int, paramName string) Checker {
+
+	return func() (isGe bool, errMsg string) {
+		if isGe = param >= comparativeVal; !isGe {
+			errMsg = fmt.Sprintf(
+				"Parameter was not greater than or equal to:  %s(%d) < %d",
+				paramName,
+				param,
+				comparativeVal)
+		}
+
+		return isGe, errMsg
 	}
 }
 
