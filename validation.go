@@ -23,7 +23,6 @@ specification, you can pass it into the Validate method:
 
 	func ReportFitsRepository(report *Report, repository *Repository) Checker {
 		return func() (passes bool, err error) {
-
 			err = fmt.Errorf("A %s report does not belong in a %s repository.", report.Type, repository.Type)
 			passes = (repository.Type == report.Type)
 			return passes, err
@@ -40,7 +39,6 @@ specification, you can pass it into the Validate method:
 
 	func AuthorIsCollaborator(authorName string, report *Report) Checker {
 		return func() (passes bool, err error) {
-
 			err = fmt.Errorf("The given author was not one of the collaborators for this report.")
 			for _, collaboratorName := range report.Collaborators() {
 				if collaboratorName == authorName {
@@ -48,13 +46,11 @@ specification, you can pass it into the Validate method:
 					break
 				}
 			}
-
 			return passes, err
 		}
 	}
 
 	func HandleReport(authorName string, report *Report, repository *Repository) {
-
 		Begin().Validate(
 			AuthorIsCollaborator(authorName, report),
 			AuthorCanUpload(authorName, repository),
@@ -101,7 +97,6 @@ func (val *Validation) Check() error {
 	if val == nil || len(val.Errors) <= 0 {
 		return nil
 	}
-
 	return val
 }
 
@@ -111,7 +106,6 @@ func (val *Validation) CheckAndPanic() *Validation {
 	if val == nil || len(val.Errors) <= 0 {
 		return val
 	}
-
 	panic(val)
 }
 
@@ -124,7 +118,6 @@ func (val *Validation) CheckSetErrorAndPanic(retError *error) *Validation {
 	if val == nil || len(val.Errors) <= 0 {
 		return val
 	}
-
 	*retError = val
 	panic(*retError)
 }
@@ -133,17 +126,14 @@ func (val *Validation) CheckSetErrorAndPanic(retError *error) *Validation {
 // into an internal collection. To take action on these errors, call
 // one of the Check* methods.
 func (val *Validation) Validate(checkers ...Checker) *Validation {
-
 	for _, checker := range checkers {
 		if pass, msg := checker(); !pass {
 			if val == nil {
 				val = validationFactory()
 			}
-
 			val.Errors = append(val.Errors, msg)
 		}
 	}
-
 	return val
 }
 
@@ -159,12 +149,10 @@ type Checker func() (checkerIsTrue bool, errorMessage string)
 
 // Not returns the inverse of any Checker passed in.
 func Not(checker Checker) Checker {
-
 	return func() (passed bool, errorMessage string) {
 		if passed, errorMessage = checker(); passed {
 			return false, fmt.Sprintf("Not(%s)", errorMessage)
 		}
-
 		return true, ""
 	}
 }
@@ -172,7 +160,6 @@ func Not(checker Checker) Checker {
 // Eq performs a basic == on the given parameters and fails if
 // they are not equal.
 func Eq(lhs, rhs interface{}, paramName string) Checker {
-
 	return func() (pass bool, errMsg string) {
 		return lhs == rhs, fmt.Sprintf("%q failed %v == %v",
 			paramName, lhs, rhs)
@@ -181,7 +168,6 @@ func Eq(lhs, rhs interface{}, paramName string) Checker {
 
 // Ne performs a basic != on the given parameters and fails if they are equal.
 func Ne(lhs, rhs interface{}, paramName string) Checker {
-
 	return func() (isNe bool, errMsg string) {
 		return lhs != rhs, fmt.Sprintf("%q failed  %v != %v",
 			paramName, lhs, rhs)
@@ -193,7 +179,6 @@ func Ne(lhs, rhs interface{}, paramName string) Checker {
 // degrade into the less-performant, but accurate checks for nil.
 func NotNil(obtained interface{}, paramName string) Checker {
 	return func() (isNotNil bool, errMsg string) {
-
 		if obtained == nil {
 			isNotNil = false
 		} else if str, ok := obtained.(string); ok {
@@ -212,7 +197,6 @@ func NotNil(obtained interface{}, paramName string) Checker {
 				panic("Vala is unable to check this type for nilability at this time.")
 			}
 		}
-
 		return isNotNil, fmt.Sprintf("%q failed %v != nil",
 			paramName, obtained)
 	}
@@ -220,7 +204,6 @@ func NotNil(obtained interface{}, paramName string) Checker {
 
 // Len checks to ensure the given argument is in the desired length.
 func Len(param interface{}, minLength, maxLength int, paramName string) Checker {
-
 	return func() (hasLen bool, errMsg string) {
 		len := reflect.ValueOf(param).Len()
 		hasLen = minLength <= len && len <= maxLength
@@ -231,26 +214,22 @@ func Len(param interface{}, minLength, maxLength int, paramName string) Checker 
 
 // Lt checks to ensure the given argument is less than the given value.
 func Lt(param int, comparativeVal int, paramName string) Checker {
-
 	return func() (isLt bool, errMsg string) {
 		if isLt = param < comparativeVal; !isLt {
 			errMsg = fmt.Sprintf("%q failed %d < %d",
 				paramName, param, comparativeVal)
 		}
-
 		return isLt, errMsg
 	}
 }
 
 // Le checks to ensure the given argument is less than or equal to the given value.
 func Le(param int, comparativeVal int, paramName string) Checker {
-
 	return func() (isLe bool, errMsg string) {
 		if isLe = param <= comparativeVal; !isLe {
 			errMsg = fmt.Sprintf("%q failed %d <= %d",
 				paramName, param, comparativeVal)
 		}
-
 		return isLe, errMsg
 	}
 }
@@ -258,13 +237,11 @@ func Le(param int, comparativeVal int, paramName string) Checker {
 // Gt checks to ensure the given argument is greater than the
 // given value.
 func Gt(param int, comparativeVal int, paramName string) Checker {
-
 	return func() (isGt bool, errMsg string) {
 		if isGt = param > comparativeVal; !isGt {
 			errMsg = fmt.Sprintf("%q failed %d > %d",
 				paramName, param, comparativeVal)
 		}
-
 		return isGt, errMsg
 	}
 }
@@ -272,13 +249,11 @@ func Gt(param int, comparativeVal int, paramName string) Checker {
 // Ge checks to ensure the given argument is greater than the
 // given value.
 func Ge(param int, comparativeVal int, paramName string) Checker {
-
 	return func() (isGe bool, errMsg string) {
 		if isGe = param >= comparativeVal; !isGe {
 			errMsg = fmt.Sprintf("%q failed %d >= %d",
 				paramName, param, comparativeVal)
 		}
-
 		return isGe, errMsg
 	}
 }
