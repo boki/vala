@@ -11,15 +11,15 @@ func TestPanicIsIssued(t *testing.T) {
 		}
 	}()
 
-	BeginValidation().Validate(
-		Equals("foo", "bar", "foo"),
+	Begin().Validate(
+		Eq("foo", "bar", "foo"),
 	).CheckAndPanic()
 }
 
 func TestErrorReturns(t *testing.T) {
 
-	err := BeginValidation().Validate(
-		Equals("foo", "bar", "foo"),
+	err := Begin().Validate(
+		Eq("foo", "bar", "foo"),
 	).Check()
 
 	if err == nil {
@@ -39,8 +39,8 @@ func TestSetError(t *testing.T) {
 		}
 	}()
 
-	BeginValidation().Validate(
-		Equals("foo", "bar", "foo"),
+	Begin().Validate(
+		Eq("foo", "bar", "foo"),
 	).CheckSetErrorAndPanic(&returnErr)
 
 	t.Error("We should have never reached this.")
@@ -49,8 +49,8 @@ func TestSetError(t *testing.T) {
 
 func TestNot(t *testing.T) {
 
-	err := BeginValidation().Validate(
-		Not(Equals("foo", "bar", "foo")),
+	err := Begin().Validate(
+		Not(Eq("foo", "bar", "foo")),
 	).Check()
 
 	if err != nil {
@@ -58,8 +58,8 @@ func TestNot(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = BeginValidation().Validate(
-		Not(Equals("foo", "foo", "varName")),
+	err = Begin().Validate(
+		Not(Eq("foo", "foo", "varName")),
 	).Check()
 
 	if err == nil {
@@ -68,18 +68,18 @@ func TestNot(t *testing.T) {
 	}
 }
 
-func TestEquals(t *testing.T) {
+func TestEq(t *testing.T) {
 
-	err := BeginValidation().Validate(
-		Equals("foo", "bar", "foo"),
+	err := Begin().Validate(
+		Eq("foo", "bar", "foo"),
 	).Check()
 
 	if err == nil {
 		t.FailNow()
 	}
 
-	err = BeginValidation().Validate(
-		Equals("foo", "foo", "foo"),
+	err = Begin().Validate(
+		Eq("foo", "foo", "foo"),
 	).Check()
 
 	if err != nil {
@@ -89,9 +89,9 @@ func TestEquals(t *testing.T) {
 
 func TestIsNil(t *testing.T) {
 
-	err := BeginValidation().Validate(
-		IsNotNil("foo", "foo"),
-		IsNotNil(t, "t"),
+	err := Begin().Validate(
+		NotNil("foo", "foo"),
+		NotNil(t, "t"),
 	).Check()
 
 	if err != nil {
@@ -101,9 +101,9 @@ func TestIsNil(t *testing.T) {
 
 	var nilSlice []string
 
-	err = BeginValidation().Validate(
-		Not(IsNotNil(nil, "foo")),
-		Not(IsNotNil(nilSlice, "nilSlice")),
+	err = Begin().Validate(
+		Not(NotNil(nil, "foo")),
+		Not(NotNil(nilSlice, "nilSlice")),
 	).Check()
 
 	if err != nil {
@@ -112,12 +112,12 @@ func TestIsNil(t *testing.T) {
 	}
 }
 
-func TestHasLen(t *testing.T) {
+func TestLen(t *testing.T) {
 
-	err := BeginValidation().Validate(
-		HasLen([]int{1, 2}, 2, "tmpA"),
-		HasLen([]int{}, 0, "tmpB"),
-		HasLen("1", 1, "tmpC"),
+	err := Begin().Validate(
+		Len([]int{1, 2}, 2, 2, "tmpA"),
+		Len([]int{}, 0, 0, "tmpB"),
+		Len("1", 1, 1, "tmpC"),
 	).Check()
 
 	if err != nil {
@@ -125,8 +125,26 @@ func TestHasLen(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = BeginValidation().Validate(
-		HasLen("", 1, "tmpC"),
+	err = Begin().Validate(
+		Len("", 1, 1, "tmpC"),
+	).Check()
+
+	if err == nil {
+		t.Errorf("Expected an error.")
+		t.FailNow()
+	}
+
+	err = Begin().Validate(
+		Len("abc", 2, 5, "tmpC"),
+	).Check()
+
+	if err != nil {
+		t.Errorf("Received an unexpected error: %v", err)
+		t.FailNow()
+	}
+
+	err = Begin().Validate(
+		Len("abc", 4, 7, "tmpC"),
 	).Check()
 
 	if err == nil {
@@ -135,10 +153,10 @@ func TestHasLen(t *testing.T) {
 	}
 }
 
-func TestGreaterThan(t *testing.T) {
+func TestGt(t *testing.T) {
 
-	err := BeginValidation().Validate(
-		GreaterThan(1, 0, "tmpA"),
+	err := Begin().Validate(
+		Gt(1, 0, "tmpA"),
 	).Check()
 
 	if err != nil {
@@ -146,8 +164,8 @@ func TestGreaterThan(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = BeginValidation().Validate(
-		GreaterThan(0, 1, "tmpC"),
+	err = Begin().Validate(
+		Gt(0, 1, "tmpC"),
 	).Check()
 
 	if err == nil {
@@ -156,10 +174,10 @@ func TestGreaterThan(t *testing.T) {
 	}
 }
 
-func TestStringNotEmpty(t *testing.T) {
+func TestNotEmpty(t *testing.T) {
 
-	err := BeginValidation().Validate(
-		StringNotEmpty("", "tmpA"),
+	err := Begin().Validate(
+		NotEmpty("", "tmpA"),
 	).Check()
 
 	if err == nil {

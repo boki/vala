@@ -5,15 +5,15 @@ validation in Go palatable.
 This package uses the fluent programming style to provide
 simultaneously more robust and more terse parameter validation.
 
-	BeginValidation().Validate(
-		IsNotNil(a, "a"),
-		IsNotNil(b, "b"),
-		IsNotNil(c, "c"),
+	Begin().Validate(
+		NotNil(a, "a"),
+		NotNil(b, "b"),
+		NotNil(c, "c"),
 	).CheckAndPanic().Validate( // Panic will occur here if a, b, or c are nil.
-		HasLen(a.Items, 50, "a.Items"),
-		GreaterThan(b.UserCount, 0, "b.UserCount"),
-		Equals(c.Name, "Vala", "c.name"),
-		Not(Equals(c.FriendlyName, "Foo", "c.FriendlyName")),
+		Len(a.Items, 50, 70, "a.Items"),
+		Gt(b.UserCount, 0, "b.UserCount"),
+		Eq(c.Name, "Vala", "c.name"),
+		Not(Eq(c.FriendlyName, "Foo", "c.FriendlyName")),
 	).Check()
 
 Notice how checks can be tiered.
@@ -55,7 +55,7 @@ specification, you can pass it into the Validate method:
 
 	func HandleReport(authorName string, report *Report, repository *Repository) {
 
-		BeginValidation().Validate(
+		Begin().Validate(
 			AuthorIsCollaborator(authorName, report),
 			AuthorCanUpload(authorName, repository),
 			ReportFitsRepository(report, repository),
@@ -80,8 +80,8 @@ type Validation struct {
 	Errors []string
 }
 
-// BeginValidation begins a validation check.
-func BeginValidation() *Validation {
+// Begin begins a validation check.
+func Begin() *Validation {
 	return nil
 }
 
@@ -166,19 +166,19 @@ func Not(checker Checker) Checker {
 	}
 }
 
-// Equals performs a basic == on the given parameters and fails if
+// Eq performs a basic == on the given parameters and fails if
 // they are not equal.
-func Equals(lhs, rhs interface{}, paramName string) Checker {
+func Eq(lhs, rhs interface{}, paramName string) Checker {
 
 	return func() (pass bool, errMsg string) {
 		return (lhs == rhs), fmt.Sprintf("Parameters were not equal: %v, %v", lhs, rhs)
 	}
 }
 
-// IsNotNil checks to see if the value passed in is nil. This Checker
+// NotNil checks to see if the value passed in is nil. This Checker
 // attempts to check the most performant things first, and then
 // degrade into the less-performant, but accurate checks for nil.
-func IsNotNil(obtained interface{}, paramName string) Checker {
+func NotNil(obtained interface{}, paramName string) Checker {
 	return func() (isNotNil bool, errMsg string) {
 
 		if obtained == nil {
@@ -204,21 +204,22 @@ func IsNotNil(obtained interface{}, paramName string) Checker {
 	}
 }
 
-// HasLen checks to ensure the given argument is the desired length.
-func HasLen(param interface{}, desiredLength int, paramName string) Checker {
+// Len checks to ensure the given argument is in the desired length.
+func Len(param interface{}, minLength, maxLength int, paramName string) Checker {
 
 	return func() (hasLen bool, errMsg string) {
-		hasLen = desiredLength == reflect.ValueOf(param).Len()
+		len := reflect.ValueOf(param).Len()
+		hasLen = minLength <= len && len <= maxLength
 		return hasLen, "Parameter did not contain the correct number of elements: " + paramName
 	}
 }
 
-// GreaterThan checks to ensure the given argument is greater than the
+// Gt checks to ensure the given argument is greater than the
 // given value.
-func GreaterThan(param int, comparativeVal int, paramName string) Checker {
+func Gt(param int, comparativeVal int, paramName string) Checker {
 
-	return func() (isGreaterThan bool, errMsg string) {
-		if isGreaterThan = param > comparativeVal; !isGreaterThan {
+	return func() (isGt bool, errMsg string) {
+		if isGt = param > comparativeVal; !isGt {
 			errMsg = fmt.Sprintf(
 				"Parameter's length was not greater than:  %s(%d) < %d",
 				paramName,
@@ -226,12 +227,12 @@ func GreaterThan(param int, comparativeVal int, paramName string) Checker {
 				comparativeVal)
 		}
 
-		return isGreaterThan, errMsg
+		return isGt, errMsg
 	}
 }
 
-// StringNotEmpty checks to ensure the given string is not empty.
-func StringNotEmpty(obtained, paramName string) Checker {
+// NotEmpty checks to ensure the given string is not empty.
+func NotEmpty(obtained, paramName string) Checker {
 	return func() (isNotEmpty bool, errMsg string) {
 		isNotEmpty = obtained != ""
 		errMsg = fmt.Sprintf("Parameter is an empty string: %s", paramName)
