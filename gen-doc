@@ -1,0 +1,3 @@
+#!/bin/sh
+sed '1,3d' README.md | pandoc -f markdown -t plain --template doc.go.tmpl -o doc.go
+
