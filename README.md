@@ -128,17 +128,6 @@ Validation{
 }
 ```
 
-```go
-err = Begin().Validate(
-  NotNil(a, ErrANotNil),
-  NotNil(b, "b"),
-  NotNil(c, ErrCNotNil),
-).CheckAndPanic().Validate( // Panic will occur here if a, b, or c are nil.
-  Eq(c.Name, "Vala", ErrNameMismatch),
-  Not(Eq(c.FriendlyName, "Foo", ErrNameMismatch), ErrNameMatch),
-).Check()
-```
-
 Extend with your own validators for readability. Note that an error should always be returned so that the Not function can return a message if it passes. Unlike idiomatic Go, use the boolean to check for success.
 
 ```go
