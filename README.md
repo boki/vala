@@ -91,7 +91,7 @@ func ClearValidation(a, b, c MyType) (err error) {
     NotNil(b, "b"),
     NotNil(c, "c"),
   ).CheckAndPanic().Validate( // Panic will occur here if a, b, or c are nil.
-    Len(a.Items, 50, 50, "a.Items"),
+    Rng(len(a.Items), 50, 50, "a.Items"),
     Gt(b.UserCount, 0, "b.UserCount"),
     Eq(c.Name, "Vala", "c.name"),
     Not(Eq(c.FriendlyName, "Foo", "c.FriendlyName"), "!Eq"),

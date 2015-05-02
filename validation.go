@@ -10,7 +10,7 @@ simultaneously more robust and more terse parameter validation.
 		NotNil(b, "b"),
 		NotNil(c, "c"),
 	).CheckAndPanic().Validate( // Panic will occur here if a, b, or c are nil.
-		Len(a.Items, 50, 70, "a.Items"),
+		Rng(a.Items, 50, 70, "a.Items"),
 		Gt(b.UserCount, 0, "b.UserCount"),
 		Eq(c.Name, "Vala", "c.name"),
 		Not(Eq(c.FriendlyName, "Foo", "c.FriendlyName"), "!Eq"),
@@ -85,7 +85,7 @@ var (
 	ErrEq       = errors.New("arg1 == arg2")
 	ErrNe       = errors.New("arg1 != arg2")
 	ErrNotNil   = errors.New("arg != nil")
-	ErrLen      = errors.New("min <= len(arg) <= max")
+	ErrRng      = errors.New("min <= arg <= max")
 	ErrLt       = errors.New("arg < value")
 	ErrLe       = errors.New("arg <= value")
 	ErrGt       = errors.New("arg > value")
@@ -246,13 +246,13 @@ func NotNil(arg interface{}, nameOrErr interface{}) Checker {
 	}
 }
 
-// Len checks that the given argument is in the desired length. nameOrErr
+// Rng checks that the given argument is in the desired range. nameOrErr
 // specifies the name of the parameter or a custom error.
-func Len(arg interface{}, min, max int, nameOrErr interface{}) Checker {
+func Rng(arg int, min, max int, nameOrErr interface{}) Checker {
 	return func() *CheckerError {
-		len := reflect.ValueOf(arg).Len()
+		len := arg
 		if len < min || len > max {
-			return newCheckerError(nameOrErr, ErrLen)
+			return newCheckerError(nameOrErr, ErrRng)
 		}
 		return nil
 	}

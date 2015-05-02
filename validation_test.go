@@ -191,33 +191,26 @@ func TestNotNil(t *testing.T) {
 
 func TestLen(t *testing.T) {
 	err := Begin().Validate(
-		Len([]int{1, 2}, 2, 2, "tmpA"),
-		Len([]int{}, 0, 0, "tmpB"),
-		Len("1", 1, 1, "tmpC"),
+		Rng(len([]int{1, 2}), 2, 2, "tmpA"),
+		Rng(len([]int{}), 0, 0, "tmpB"),
+		Rng(len("1"), 1, 1, "tmpC"),
 	).Check()
 	if err != nil {
 		t.Fatal("Received an unexpected error: %v", err)
 	}
 
 	err = Begin().Validate(
-		Len("", 1, 1, "tmpC"),
+		Rng(0, 1, 1, "tmpC"),
 	).Check()
 	if err == nil {
 		t.Fatal("Expected an error.")
 	}
 
 	err = Begin().Validate(
-		Len("abc", 2, 5, "tmpC"),
+		Rng(3, 2, 5, "tmpC"),
 	).Check()
 	if err != nil {
 		t.Fatal("Received an unexpected error: %v", err)
-	}
-
-	err = Begin().Validate(
-		Len("abc", 4, 7, "tmpC"),
-	).Check()
-	if err == nil {
-		t.Fatal("Expected an error.")
 	}
 }
 
