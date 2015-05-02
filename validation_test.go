@@ -43,6 +43,12 @@ func TestNewCheckerError(t *testing.T) {
 	if got, expected := err.Error(), "arg != nil"; got != expected {
 		t.Errorf("Expected %v; got %v", expected, got)
 	}
+
+	customErr2 := &CheckerError{"Test", ErrNe}
+	err = newCheckerError(customErr2, def)
+	if err != customErr2 {
+		t.Errorf("Expected %v; got %v", customErr2, err)
+	}
 }
 
 func TestCheckerErrorError(t *testing.T) {

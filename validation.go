@@ -175,6 +175,8 @@ type Checker func() *CheckerError
 func newCheckerError(nameOrErr interface{}, def error) *CheckerError {
 	if name, ok := nameOrErr.(string); ok {
 		return &CheckerError{Name: name, Err: def}
+	} else if ce, ok := nameOrErr.(*CheckerError); ok {
+		return ce
 	}
 	return &CheckerError{Err: nameOrErr.(error)}
 }
