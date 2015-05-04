@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 )
 
 // A single validation error
@@ -31,6 +32,7 @@ var (
 	ErrLe       = errors.New("arg <= value")
 	ErrGt       = errors.New("arg > value")
 	ErrGe       = errors.New("arg >= value")
+	ErrBool     = errors.New("bool")
 	ErrNotEmpty = errors.New("arg != \"\"")
 )
 
@@ -238,6 +240,68 @@ func Ge(arg int, value int, nameOrErr interface{}) Checker {
 	return func() *CheckerError {
 		if arg < value {
 			return newCheckerError(nameOrErr, ErrGe)
+		}
+		return nil
+	}
+}
+
+// Bool checks if the given string represents a boolean value, i.e., 1, t, T, TRUE,
+// true, True,  0, f, F, FALSE, false, False.
+// nameOrErr specifies the name of the parameter or a custom error.
+func Bool(arg string, nameOrErr interface{}) Checker {
+	return func() *CheckerError {
+		_, err := strconv.ParseBool(arg)
+		if err != nil {
+			return newCheckerError(nameOrErr, ErrBool)
+		}
+		return nil
+	}
+}
+
+// Int checks if the given string can be interpreted in base 10. The bitSize
+// argument specifies the integer type that the result must fit into.
+// Bit sizes 0, 8, 16, 32, and 64 correspond to int, int8, int16, int32, and int64.
+//
+// Possible errors:
+//  * If arg is empty or contains invalid digits: ErrSyntax
+//  * if the value corresponding to arg cannot be represented by a signed integer of the given size: ErrRange
+//
+// nameOrErr specifies the name of the parameter or a custom error.
+func Int(arg string, bitSize int, nameOrErr interface{}) Checker {
+	return func() *CheckerError {
+		_, err := strconv.ParseInt(arg, 10, bitSize)
+		if err != nil {
+			return newCheckerError(nameOrErr, err.(*strconv.NumError).Err)
+		}
+		return nil
+	}
+}
+
+// Uint is like Int but for unsigned numbers.
+// nameOrErr specifies the name of the parameter or a custom error.
+func Uint(arg string, bitSize int, nameOrErr interface{}) Checker {
+	return func() *CheckerError {
+		_, err := strconv.ParseUint(arg, 10, bitSize)
+		if err != nil {
+			return newCheckerError(nameOrErr, err.(*strconv.NumError).Err)
+		}
+		return nil
+	}
+}
+
+// Int checks if the given string can be converted to a floating-point number with
+// the precision specified by bitSize.
+//
+// Possible errors:
+//  * If arg is empty or contains invalid digits: ErrSyntax
+//  * if the value corresponding to arg cannot be represented by a signed integer of the given size: ErrRange
+//
+// nameOrErr specifies the name of the parameter or a custom error.
+func Float(arg string, bitSize int, nameOrErr interface{}) Checker {
+	return func() *CheckerError {
+		_, err := strconv.ParseFloat(arg, bitSize)
+		if err != nil {
+			return newCheckerError(nameOrErr, err.(*strconv.NumError).Err)
 		}
 		return nil
 	}

@@ -2,6 +2,7 @@ package vala
 
 import (
 	"errors"
+	"strconv"
 	"testing"
 )
 
@@ -277,6 +278,134 @@ func TestGe(t *testing.T) {
 	).Check()
 	if err == nil {
 		t.Fatalf("Expected an error.")
+	}
+}
+
+func TestBool(t *testing.T) {
+	err := Begin().Validate(
+		Bool("", "empty"),
+		Bool("a", "syntax"),
+	).Check()
+	if err == nil {
+		t.Fatalf("Expected an error.")
+	}
+	if got, expected := len(err.(*Validation).Errors), 2; got != expected {
+		t.Fatalf("Expected %v errors; got %v", expected, got)
+	}
+	if got, expected := err.(*Validation).Errors[0].Err, ErrBool; got != expected {
+		t.Errorf("Expected %v; got %v", expected, got)
+	}
+	if got, expected := err.(*Validation).Errors[1].Err, ErrBool; got != expected {
+		t.Errorf("Expected %v; got %v", expected, got)
+	}
+
+	err = Begin().Validate(
+		Bool("1", "1"),
+		Bool("True", "True"),
+		Bool("f", "f"),
+	).Check()
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+}
+
+func TestInt(t *testing.T) {
+	err := Begin().Validate(
+		Int("", 8, "empty"),
+		Int("128", 8, "out of range"),
+		Int("0xabcd", 32, "syntax"),
+	).Check()
+	if err == nil {
+		t.Fatalf("Expected an error.")
+	}
+	if got, expected := len(err.(*Validation).Errors), 3; got != expected {
+		t.Fatalf("Expected %v errors; got %v", expected, got)
+	}
+	if got, expected := err.(*Validation).Errors[0].Err, strconv.ErrSyntax; got != expected {
+		t.Errorf("Expected %v; got %v", expected, got)
+	}
+	if got, expected := err.(*Validation).Errors[1].Err, strconv.ErrRange; got != expected {
+		t.Errorf("Expected %v; got %v", expected, got)
+	}
+	if got, expected := err.(*Validation).Errors[2].Err, strconv.ErrSyntax; got != expected {
+		t.Errorf("Expected %v; got %v", expected, got)
+	}
+
+	err = Begin().Validate(
+		Int("127", 8, "a"),
+		Int("-127", 8, "b"),
+		Int("128", 32, "c"),
+	).Check()
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+}
+
+func TestUint(t *testing.T) {
+	err := Begin().Validate(
+		Uint("", 8, "empty"),
+		Uint("-127", 8, "syntax"),
+		Uint("256", 8, "range"),
+	).Check()
+	if err == nil {
+		t.Fatalf("Expected an error.")
+	}
+	if got, expected := len(err.(*Validation).Errors), 3; got != expected {
+		t.Fatalf("Expected %v errors; got %v", expected, got)
+	}
+	if got, expected := err.(*Validation).Errors[0].Err, strconv.ErrSyntax; got != expected {
+		t.Errorf("Expected %v; got %v", expected, got)
+	}
+	if got, expected := err.(*Validation).Errors[1].Err, strconv.ErrSyntax; got != expected {
+		t.Errorf("Expected %v; got %v", expected, got)
+	}
+	if got, expected := err.(*Validation).Errors[2].Err, strconv.ErrRange; got != expected {
+		t.Errorf("Expected %v; got %v", expected, got)
+	}
+
+	err = Begin().Validate(
+		Uint("127", 8, "a"),
+		Uint("255", 8, "b"),
+		Uint("128", 32, "c"),
+	).Check()
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+}
+
+func TestFloat(t *testing.T) {
+	err := Begin().Validate(
+		Float("", 32, "empty"),
+		Float("1.2.", 32, "syntax"),
+		Float("1.7976931348623159e308", 64, "range"),
+		Float("1,2345", 64, "syntax"),
+	).Check()
+	if err == nil {
+		t.Fatalf("Expected an error.")
+	}
+	if got, expected := len(err.(*Validation).Errors), 4; got != expected {
+		t.Fatalf("Expected %v errors; got %v", expected, got)
+	}
+	if got, expected := err.(*Validation).Errors[0].Err, strconv.ErrSyntax; got != expected {
+		t.Errorf("Expected %v; got %v", expected, got)
+	}
+	if got, expected := err.(*Validation).Errors[1].Err, strconv.ErrSyntax; got != expected {
+		t.Errorf("Expected %v; got %v", expected, got)
+	}
+	if got, expected := err.(*Validation).Errors[2].Err, strconv.ErrRange; got != expected {
+		t.Errorf("Expected %v; got %v", expected, got)
+	}
+	if got, expected := err.(*Validation).Errors[3].Err, strconv.ErrSyntax; got != expected {
+		t.Errorf("Expected %v; got %v", expected, got)
+	}
+
+	err = Begin().Validate(
+		Float("1.2", 32, "a"),
+		Float("3", 32, "b"),
+		Float("1234567890.123", 32, "c"),
+	).Check()
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
 	}
 }
 
