@@ -11,14 +11,15 @@ var (
 )
 
 func TestError(t *testing.T) {
-	v := &Validation{[]*CheckerError{}}
+	v := &Validation{[]error{}}
 
 	err := v.Error()
 	if err != "" {
 		t.Errorf("Received an unexpected error message: %v", err)
 	}
 
-	v.Errors = append(v.Errors, &CheckerError{"Name", ErrNe})
+	cerr := &CheckerError{"Name", ErrNe}
+	v.Errors = append(v.Errors, cerr)
 	err = v.Error()
 	if err == "" {
 		t.Errorf("Expected an error message.")
@@ -29,7 +30,7 @@ func TestNewCheckerError(t *testing.T) {
 	def := ErrNotEmpty
 	name := "Test"
 	err := newCheckerError(name, def)
-	if got := err.Err; got != ErrNotEmpty {
+	if got := err.(*CheckerError).Err; got != ErrNotEmpty {
 		t.Errorf("Expected %v; got %v", ErrNotEmpty, got)
 	}
 	if got, expected := err.Error(), "Test: arg != \"\""; got != expected {
@@ -38,7 +39,7 @@ func TestNewCheckerError(t *testing.T) {
 
 	customErr := ErrNotNil
 	err = newCheckerError(customErr, def)
-	if got := err.Err; got != ErrNotNil {
+	if got := err.(*CheckerError).Err; got != ErrNotNil {
 		t.Errorf("Expected %v; got %v", ErrNotNil, got)
 	}
 	if got, expected := err.Error(), "arg != nil"; got != expected {
@@ -292,10 +293,10 @@ func TestBool(t *testing.T) {
 	if got, expected := len(err.(*Validation).Errors), 2; got != expected {
 		t.Fatalf("Expected %v errors; got %v", expected, got)
 	}
-	if got, expected := err.(*Validation).Errors[0].Err, ErrBool; got != expected {
+	if got, expected := err.(*Validation).Errors[0].(*CheckerError).Err, ErrBool; got != expected {
 		t.Errorf("Expected %v; got %v", expected, got)
 	}
-	if got, expected := err.(*Validation).Errors[1].Err, ErrBool; got != expected {
+	if got, expected := err.(*Validation).Errors[1].(*CheckerError).Err, ErrBool; got != expected {
 		t.Errorf("Expected %v; got %v", expected, got)
 	}
 
@@ -321,13 +322,13 @@ func TestInt(t *testing.T) {
 	if got, expected := len(err.(*Validation).Errors), 3; got != expected {
 		t.Fatalf("Expected %v errors; got %v", expected, got)
 	}
-	if got, expected := err.(*Validation).Errors[0].Err, strconv.ErrSyntax; got != expected {
+	if got, expected := err.(*Validation).Errors[0].(*CheckerError).Err, strconv.ErrSyntax; got != expected {
 		t.Errorf("Expected %v; got %v", expected, got)
 	}
-	if got, expected := err.(*Validation).Errors[1].Err, strconv.ErrRange; got != expected {
+	if got, expected := err.(*Validation).Errors[1].(*CheckerError).Err, strconv.ErrRange; got != expected {
 		t.Errorf("Expected %v; got %v", expected, got)
 	}
-	if got, expected := err.(*Validation).Errors[2].Err, strconv.ErrSyntax; got != expected {
+	if got, expected := err.(*Validation).Errors[2].(*CheckerError).Err, strconv.ErrSyntax; got != expected {
 		t.Errorf("Expected %v; got %v", expected, got)
 	}
 
@@ -353,13 +354,13 @@ func TestUint(t *testing.T) {
 	if got, expected := len(err.(*Validation).Errors), 3; got != expected {
 		t.Fatalf("Expected %v errors; got %v", expected, got)
 	}
-	if got, expected := err.(*Validation).Errors[0].Err, strconv.ErrSyntax; got != expected {
+	if got, expected := err.(*Validation).Errors[0].(*CheckerError).Err, strconv.ErrSyntax; got != expected {
 		t.Errorf("Expected %v; got %v", expected, got)
 	}
-	if got, expected := err.(*Validation).Errors[1].Err, strconv.ErrSyntax; got != expected {
+	if got, expected := err.(*Validation).Errors[1].(*CheckerError).Err, strconv.ErrSyntax; got != expected {
 		t.Errorf("Expected %v; got %v", expected, got)
 	}
-	if got, expected := err.(*Validation).Errors[2].Err, strconv.ErrRange; got != expected {
+	if got, expected := err.(*Validation).Errors[2].(*CheckerError).Err, strconv.ErrRange; got != expected {
 		t.Errorf("Expected %v; got %v", expected, got)
 	}
 
@@ -386,16 +387,16 @@ func TestFloat(t *testing.T) {
 	if got, expected := len(err.(*Validation).Errors), 4; got != expected {
 		t.Fatalf("Expected %v errors; got %v", expected, got)
 	}
-	if got, expected := err.(*Validation).Errors[0].Err, strconv.ErrSyntax; got != expected {
+	if got, expected := err.(*Validation).Errors[0].(*CheckerError).Err, strconv.ErrSyntax; got != expected {
 		t.Errorf("Expected %v; got %v", expected, got)
 	}
-	if got, expected := err.(*Validation).Errors[1].Err, strconv.ErrSyntax; got != expected {
+	if got, expected := err.(*Validation).Errors[1].(*CheckerError).Err, strconv.ErrSyntax; got != expected {
 		t.Errorf("Expected %v; got %v", expected, got)
 	}
-	if got, expected := err.(*Validation).Errors[2].Err, strconv.ErrRange; got != expected {
+	if got, expected := err.(*Validation).Errors[2].(*CheckerError).Err, strconv.ErrRange; got != expected {
 		t.Errorf("Expected %v; got %v", expected, got)
 	}
-	if got, expected := err.(*Validation).Errors[3].Err, strconv.ErrSyntax; got != expected {
+	if got, expected := err.(*Validation).Errors[3].(*CheckerError).Err, strconv.ErrSyntax; got != expected {
 		t.Errorf("Expected %v; got %v", expected, got)
 	}
 
@@ -430,7 +431,7 @@ func TestNotEmpty(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected an error")
 	}
-	if got := err.(*Validation).Errors[0].Err; got != myErr {
+	if got := err.(*Validation).Errors[0].(*CheckerError).Err; got != myErr {
 		t.Fatalf("Expected %v; got %v", myErr, got)
 	}
 }

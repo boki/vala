@@ -39,11 +39,11 @@ var (
 // Validation contains all the errors from performing Checkers, and is
 // the fluent type off which all Validation methods hang.
 type Validation struct {
-	Errors []*CheckerError
+	Errors []error
 }
 
 func validationFactory() *Validation {
-	return &Validation{[]*CheckerError{}}
+	return &Validation{[]error{}}
 }
 
 func (err *Validation) Error() string {
@@ -113,9 +113,9 @@ func (val *Validation) Validate(checkers ...Checker) *Validation {
 //
 
 // Checker defines the type of function which can represent a Vala checker.
-type Checker func() *CheckerError
+type Checker func() error
 
-func newCheckerError(nameOrErr interface{}, def error) *CheckerError {
+func newCheckerError(nameOrErr interface{}, def error) error {
 	if name, ok := nameOrErr.(string); ok {
 		return &CheckerError{Name: name, Err: def}
 	} else if ce, ok := nameOrErr.(*CheckerError); ok {
@@ -127,7 +127,7 @@ func newCheckerError(nameOrErr interface{}, def error) *CheckerError {
 // Not returns the inverse of any Checker passed in. nameOrErr specifies the name
 // of the parameter or a custom error.
 func Not(checker Checker, nameOrErr interface{}) Checker {
-	return func() *CheckerError {
+	return func() error {
 		if err := checker(); err == nil {
 			return newCheckerError(nameOrErr, ErrNot)
 		}
@@ -138,7 +138,7 @@ func Not(checker Checker, nameOrErr interface{}) Checker {
 // Eq checks that the arguments pass arg1 == arg2. nameOrErr specifies the name
 // of the parameter or a custom error.
 func Eq(arg1, arg2 interface{}, nameOrErr interface{}) Checker {
-	return func() *CheckerError {
+	return func() error {
 		if arg1 == arg2 {
 			return nil
 		}
@@ -149,7 +149,7 @@ func Eq(arg1, arg2 interface{}, nameOrErr interface{}) Checker {
 // Ne checks that the arguments pass arg1 != arg2. nameOrErr specifies the name
 // of the parameter or a custom error.
 func Ne(arg1, arg2 interface{}, nameOrErr interface{}) Checker {
-	return func() *CheckerError {
+	return func() error {
 		if arg1 != arg2 {
 			return nil
 		}
@@ -162,7 +162,7 @@ func Ne(arg1, arg2 interface{}, nameOrErr interface{}) Checker {
 // degrade into the less-performant, but accurate checks for nil. nameOrErr
 // specifies the name of the parameter or a custom error.
 func NotNil(arg interface{}, nameOrErr interface{}) Checker {
-	return func() *CheckerError {
+	return func() error {
 		isNotNil := true
 		if arg == nil {
 			isNotNil = false
@@ -192,7 +192,7 @@ func NotNil(arg interface{}, nameOrErr interface{}) Checker {
 // Rng checks that the given argument is in the desired range. nameOrErr
 // specifies the name of the parameter or a custom error.
 func Rng(arg int, min, max int, nameOrErr interface{}) Checker {
-	return func() *CheckerError {
+	return func() error {
 		len := arg
 		if len < min || len > max {
 			return newCheckerError(nameOrErr, ErrRng)
@@ -204,7 +204,7 @@ func Rng(arg int, min, max int, nameOrErr interface{}) Checker {
 // Lt checks that the given argument is less than the given value. nameOrErr
 // specifies the name of the parameter or a custom error.
 func Lt(arg int, value int, nameOrErr interface{}) Checker {
-	return func() *CheckerError {
+	return func() error {
 		if arg >= value {
 			return newCheckerError(nameOrErr, ErrLt)
 		}
@@ -215,7 +215,7 @@ func Lt(arg int, value int, nameOrErr interface{}) Checker {
 // Le checks that the given argument is less than or equal to the given value.
 // nameOrErr specifies the name of the parameter or a custom error.
 func Le(arg int, value int, nameOrErr interface{}) Checker {
-	return func() *CheckerError {
+	return func() error {
 		if arg > value {
 			return newCheckerError(nameOrErr, ErrLe)
 		}
@@ -226,7 +226,7 @@ func Le(arg int, value int, nameOrErr interface{}) Checker {
 // Gt checks that the given argument is greater than the given value.
 // nameOrErr specifies the name of the parameter or a custom error.
 func Gt(arg int, value int, nameOrErr interface{}) Checker {
-	return func() *CheckerError {
+	return func() error {
 		if arg <= value {
 			return newCheckerError(nameOrErr, ErrGt)
 		}
@@ -237,7 +237,7 @@ func Gt(arg int, value int, nameOrErr interface{}) Checker {
 // Ge checks that the given argument is greater than the given value.
 // nameOrErr specifies the name of the parameter or a custom error.
 func Ge(arg int, value int, nameOrErr interface{}) Checker {
-	return func() *CheckerError {
+	return func() error {
 		if arg < value {
 			return newCheckerError(nameOrErr, ErrGe)
 		}
@@ -249,7 +249,7 @@ func Ge(arg int, value int, nameOrErr interface{}) Checker {
 // true, True,  0, f, F, FALSE, false, False.
 // nameOrErr specifies the name of the parameter or a custom error.
 func Bool(arg string, nameOrErr interface{}) Checker {
-	return func() *CheckerError {
+	return func() error {
 		_, err := strconv.ParseBool(arg)
 		if err != nil {
 			return newCheckerError(nameOrErr, ErrBool)
@@ -268,7 +268,7 @@ func Bool(arg string, nameOrErr interface{}) Checker {
 //
 // nameOrErr specifies the name of the parameter or a custom error.
 func Int(arg string, bitSize int, nameOrErr interface{}) Checker {
-	return func() *CheckerError {
+	return func() error {
 		_, err := strconv.ParseInt(arg, 10, bitSize)
 		if err != nil {
 			return newCheckerError(nameOrErr, err.(*strconv.NumError).Err)
@@ -280,7 +280,7 @@ func Int(arg string, bitSize int, nameOrErr interface{}) Checker {
 // Uint is like Int but for unsigned numbers.
 // nameOrErr specifies the name of the parameter or a custom error.
 func Uint(arg string, bitSize int, nameOrErr interface{}) Checker {
-	return func() *CheckerError {
+	return func() error {
 		_, err := strconv.ParseUint(arg, 10, bitSize)
 		if err != nil {
 			return newCheckerError(nameOrErr, err.(*strconv.NumError).Err)
@@ -298,7 +298,7 @@ func Uint(arg string, bitSize int, nameOrErr interface{}) Checker {
 //
 // nameOrErr specifies the name of the parameter or a custom error.
 func Float(arg string, bitSize int, nameOrErr interface{}) Checker {
-	return func() *CheckerError {
+	return func() error {
 		_, err := strconv.ParseFloat(arg, bitSize)
 		if err != nil {
 			return newCheckerError(nameOrErr, err.(*strconv.NumError).Err)
@@ -310,7 +310,7 @@ func Float(arg string, bitSize int, nameOrErr interface{}) Checker {
 // NotEmpty checks that the given string is not empty.
 // nameOrErr specifies the name of the parameter or a custom error.
 func NotEmpty(arg, nameOrErr interface{}) Checker {
-	return func() *CheckerError {
+	return func() error {
 		if arg == "" {
 			return newCheckerError(nameOrErr, ErrNotEmpty)
 		}
